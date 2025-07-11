@@ -1,1 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Dashboard - NGO Medical Camp</title>
+    <link rel="stylesheet" href="doctor.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>👨‍⚕️ Doctor Dashboard</h1>
+            <div class="header-actions">
+                <button id="refreshDataBtn" class="btn-secondary">
+                    <span class="btn-text">🔄 Refresh Data</span>
+                    <span class="btn-loading" style="display: none;">Loading...</span>
+                </button>
+            </div>
+        </header>
 
+        <!-- Alert Container -->
+        <div id="alertContainer" class="alert-container"></div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Camp Information -->
+            <div class="card">
+                <div id="campCard" class="camp-card">
+                    <div class="no-camp-state">
+                        <h3>⚠️ Loading Camp Information...</h3>
+                        <p>Please wait while we load the current camp details</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="readyPatients">0</div>
+                    <div class="stat-label">Ready for Consultation</div>
+                    <div class="stat-icon">🏥</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="completedToday">0</div>
+                    <div class="stat-label">Completed Today</div>
+                    <div class="stat-icon">✅</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalConsultations">0</div>
+                    <div class="stat-label">Total Consultations</div>
+                    <div class="stat-icon">📊</div>
+                </div>
+            </div>
+
+            <!-- Patient Lookup Section -->
+            <div class="card lookup-card">
+                <h3>🔍 Patient Lookup</h3>
+                <div class="lookup-form">
+                    <input type="text" id="patientLookupInput" placeholder="Enter registration number, phone, or name" class="lookup-input">
+                    <button id="lookupBtn" class="btn-primary">Search Patient</button>
+                    <button id="clearLookupBtn" class="btn-secondary">Clear</button>
+                </div>
+                <div id="lookupResults" class="lookup-results"></div>
+            </div>
+
+            <!-- Ready Patients Section -->
+            <div class="card patients-card">
+                <h3>🏥 Patients Ready for Consultation</h3>
+                <div id="readyPatientsList" class="patients-list">
+                    <div class="loading">Loading patients ready for consultation...</div>
+                </div>
+            </div>
+
+            <!-- Patient Details Section -->
+            <div id="patientDetailsSection" class="card patient-details-card" style="display: none;">
+                <h3>📋 Patient Information</h3>
+                <div id="patientInfo" class="patient-info">
+                    <!-- Patient details will be populated here -->
+                </div>
+                
+                <!-- Consultation Form -->
+                <div id="consultationForm" class="consultation-form">
+                    <h4>🩺 Consultation Details</h4>
+                    <form id="consultationFormElement">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="diagnosis">Diagnosis *</label>
+                                <textarea id="diagnosis" name="diagnosis" required rows="3" placeholder="Enter primary diagnosis"></textarea>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="symptoms">Symptoms Observed</label>
+                                <textarea id="symptoms" name="symptoms" rows="3" placeholder="Describe observed symptoms"></textarea>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="treatment">Treatment Plan</label>
+                                <textarea id="treatment" name="treatment" rows="3" placeholder="Describe treatment plan"></textarea>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="medications">Medications Prescribed</label>
+                                <textarea id="medications" name="medications" rows="3" placeholder="List medications and dosages"></textarea>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="followUp">Follow-up Instructions</label>
+                                <textarea id="followUp" name="followUp" rows="2" placeholder="Follow-up care instructions"></textarea>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="notes">Additional Notes</label>
+                                <textarea id="notes" name="notes" rows="2" placeholder="Any additional notes or observations"></textarea>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" id="saveConsultationBtn" class="btn-primary">
+                                <span class="btn-text">💾 Save Consultation</span>
+                                <span class="btn-loading" style="display: none;">Saving...</span>
+                            </button>
+                            <button type="button" id="clearConsultationBtn" class="btn-secondary">Clear Form</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Previous Consultations Section -->
+            <div id="previousConsultationsSection" class="card" style="display: none;">
+                <h3>📈 Previous Consultations</h3>
+                <div id="previousConsultations" class="consultations-history">
+                    <!-- Previous consultations will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="consultationSuccessModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3>✅ Consultation Completed</h3>
+            <p>The consultation has been successfully recorded and the patient is now ready for pharmacy.</p>
+            <div class="modal-actions">
+                <button id="continueBtn" class="btn-primary">Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="doctor.js"></script>
+</body>
+</html>

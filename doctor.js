@@ -522,16 +522,25 @@ async function lookupPatient() {
         const consultationCandidates = [];
         for (const patient of matchingPatients) {
             try {
+                // Use single-field query and filter in JavaScript
                 const visitsSnapshot = await db.collection('patient_visits')
                     .where('patientId', '==', patient.id)
-                    .where('campId', '==', currentCamp.id)
                     .get();
                 
-                if (!visitsSnapshot.empty) {
-                    const visit = visitsSnapshot.docs[0].data();
+                // Filter for current camp in JavaScript
+                const campVisits = [];
+                visitsSnapshot.forEach(doc => {
+                    const visit = doc.data();
+                    if (visit.campId === currentCamp.id) {
+                        campVisits.push({ id: doc.id, ...visit });
+                    }
+                });
+                
+                if (campVisits.length > 0) {
+                    const visit = campVisits[0];
                     consultationCandidates.push({
                         patient: patient,
-                        visit: { id: visitsSnapshot.docs[0].id, ...visit },
+                        visit: visit,
                         canConsult: visit.journeyStatus?.vitals?.status === 'completed'
                     });
                 }

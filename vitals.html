@@ -10,6 +10,35 @@
     <link rel="stylesheet" href="vitals.css">
 </head>
 <body>
+    <!-- Camp Selection Modal -->
+<div id="campSelectionModal" class="modal camp-selection-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>🏥 Select Health Camp</h3>
+        </div>
+        <div class="modal-body">
+            <div class="camp-selection-section">
+                <h4>Available Camps</h4>
+                <div class="form-group">
+                    <label for="availableCamps">Select a camp to start vitals recording *</label>
+                    <select id="availableCamps" required>
+                        <option value="">Loading camps...</option>
+                    </select>
+                </div>
+                <div class="camp-info" id="selectedCampInfo" style="display: none;">
+                    <!-- Selected camp details will be shown here -->
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" id="refreshCampsBtn" class="btn-secondary">Refresh Camps</button>
+            <button type="button" id="selectCampBtn" class="btn-primary" disabled>
+                <span class="btn-text">Select Camp</span>
+                <span class="btn-loading" style="display: none;">Loading...</span>
+            </button>
+        </div>
+    </div>
+</div>
     <div class="app-container">
         <!-- Sidebar -->
         <div class="sidebar">

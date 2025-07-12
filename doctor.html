@@ -1,1 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Consultation - Health Camp Management</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="doctor.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">🏥</div>
+                    <div class="logo-text">
+                        <h2>HealthCamp</h2>
+                        <p>Doctor Console</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar-content">
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <button id="refreshDataBtn" class="action-button">
+                        <span class="action-icon">🔄</span>
+                        <span>Refresh</span>
+                    </button>
+                </div>
+                
+                <!-- Current Camp Info -->
+                <div class="camp-card" id="campCard">
+                    <div class="loading">Loading camp...</div>
+                </div>
+                
+                <!-- Statistics -->
+                <div class="stats-section">
+                    <h3>📊 Today's Statistics</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number" id="todayConsultations">0</div>
+                            <div class="stat-label">Consultations</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="pendingPatients">0</div>
+                            <div class="stat-label">Pending</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Workflow Status -->
+                <div class="workflow-section">
+                    <h3>🏃‍♂️ Current Workflow</h3>
+                    <div class="workflow-steps">
+                        <div class="workflow-step completed">
+                            <span class="step-icon">✓</span>
+                            <span class="step-label">Registration</span>
+                        </div>
+                        <div class="workflow-step completed">
+                            <span class="step-icon">✓</span>
+                            <span class="step-label">Vitals</span>
+                        </div>
+                        <div class="workflow-step active">
+                            <span class="step-icon">👨‍⚕️</span>
+                            <span class="step-label">Doctor</span>
+                        </div>
+                        <div class="workflow-step pending">
+                            <span class="step-icon">💊</span>
+                            <span class="step-label">Pharmacy</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
+        <!-- Main Content -->
+        <div class="main-container">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div class="page-title">
+                    <h1>Doctor Consultation</h1>
+                    <p>Institute of Social Development</p>
+                </div>
+                <div class="top-actions">
+                    <div class="desk-status">
+                        <span class="status-label">Current Desk:</span>
+                        <span class="status-badge doctor">Doctor Consultation</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-grid">
+                <!-- Patient Search Section -->
+                <div class="content-card search-card">
+                    <div class="card-header">
+                        <h2>🔍 Patient Search</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="search-section">
+                            <div class="search-input-group">
+                                <input type="text" id="searchInput" placeholder="Search by registration number, name, or phone...">
+                                <button id="searchBtn" class="btn-primary">Search</button>
+                                <button id="clearSearchBtn" class="btn-secondary">Clear</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Search Results -->
+                        <div id="searchResultsSection" class="search-results" style="display: none;">
+                            <h3>Search Results</h3>
+                            <div id="searchResultsList"></div>
+                        </div>
+                        
+                        <!-- Ready Patients -->
+                        <div id="readyPatientsSection" class="ready-patients">
+                            <h3>Patients Ready for Consultation</h3>
+                            <div id="readyPatientsList"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Patient Details Section -->
+                <div class="content-card patient-details-card">
+                    <div class="card-header">
+                        <h2>👤 Patient Details</h2>
+                    </div>
+                    <div class="card-body">
+                        <div id="patientDetailsSection" class="patient-details">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">👨‍⚕️</div>
+                                <h3>No Patient Selected</h3>
+                                <p>Search for a patient to start consultation</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Consultation Form -->
+                <div class="content-card consultation-card">
+                    <div class="card-header">
+                        <h2>📝 Consultation Form</h2>
+                    </div>
+                    <div class="card-body">
+                        <form id="consultationForm" style="display: none;">
+                            <div class="form-group">
+                                <label for="symptoms">Chief Complaints/Symptoms *</label>
+                                <textarea id="symptoms" rows="3" placeholder="Enter patient's symptoms and complaints..." required></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="diagnosis">Diagnosis *</label>
+                                <textarea id="diagnosis" rows="3" placeholder="Enter diagnosis..." required></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="prescription">Prescription/Treatment *</label>
+                                <textarea id="prescription" rows="4" placeholder="Enter prescription and treatment plan..." required></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="notes">Additional Notes</label>
+                                <textarea id="notes" rows="2" placeholder="Any additional notes or observations..."></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="followUp">Follow-up Required</label>
+                                <select id="followUp">
+                                    <option value="none">No Follow-up Required</option>
+                                    <option value="1week">1 Week</option>
+                                    <option value="2weeks">2 Weeks</option>
+                                    <option value="1month">1 Month</option>
+                                    <option value="asneeded">As Needed</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="button" id="clearConsultationBtn" class="btn-secondary">Clear Form</button>
+                                <button type="submit" id="submitConsultationBtn" class="btn-primary">Complete Consultation</button>
+                            </div>
+                        </form>
+                        
+                        <div id="consultationEmpty" class="empty-state">
+                            <div class="empty-state-icon">📝</div>
+                            <h3>No Patient Selected</h3>
+                            <p>Select a patient to start consultation</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="alertContainer" class="alert-container"></div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+    <script src="doctor.js"></script>
+</body>
+</html>

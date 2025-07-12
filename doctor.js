@@ -99,19 +99,72 @@ function setupEventListeners() {
     });
 }
 
-// Load available camps
+// Enhanced date formatting function
+function formatDate(dateInput) {
+    try {
+        let date;
+        if (dateInput && dateInput.toDate) {
+            // Firestore timestamp
+            date = dateInput.toDate();
+        } else if (dateInput && typeof dateInput === 'string') {
+            // String date
+            date = new Date(dateInput);
+        } else if (dateInput instanceof Date) {
+            // Already a Date object
+            date = dateInput;
+        } else {
+            return 'Not specified';
+        }
+        
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+            return 'Invalid date';
+        }
+        
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    } catch (error) {
+        console.error('Date formatting error:', error);
+        return 'Date unavailable';
+    }
+}
+
+// Enhanced camp data loading with sponsor information
 async function loadAvailableCamps() {
     try {
         const snapshot = await db.collection('camps').get();
         availableCamps = [];
         
-        snapshot.forEach(doc => {
-            availableCamps.push({
-                id: doc.id,
-                ...doc.data()
-            });
-        });
+        // Process camps with sponsor information
+        for (const doc of snapshot.docs) {
+            const campData = { id: doc.id, ...doc.data() };
+            
+            // Load sponsor information if available
+            if (campData.sponsorId) {
+                try {
+                    const sponsorDoc = await db.collection('sponsors').doc(campData.sponsorId).get();
+                    if (sponsorDoc.exists) {
+                        const sponsorData = sponsorDoc.data();
+                        campData.sponsorName = sponsorData.name;
+                        campData.sponsor = sponsorData;
+                    } else {
+                        campData.sponsorName = 'Sponsor not found';
+                    }
+                } catch (error) {
+                    console.error('Error loading sponsor:', error);
+                    campData.sponsorName = 'Sponsor unavailable';
+                }
+            } else {
+                campData.sponsorName = 'No sponsor assigned';
+            }
+            
+            availableCamps.push(campData);
+        }
 
+        console.log('Available camps loaded:', availableCamps);
         updateCampDropdown();
     } catch (error) {
         console.error('Error loading camps:', error);
@@ -146,7 +199,7 @@ function handleCampSelection() {
     }
 }
 
-// Display camp information
+// Enhanced camp information display
 function displayCampInfo(camp) {
     const campInfo = document.getElementById('selectedCampInfo');
     campInfo.innerHTML = `
@@ -154,7 +207,7 @@ function displayCampInfo(camp) {
         <div class="camp-info-grid">
             <div class="camp-info-item">
                 <div class="camp-info-label">Location</div>
-                <div class="camp-info-value">${camp.location}</div>
+                <div class="camp-info-value">${camp.location || 'Location not specified'}</div>
             </div>
             <div class="camp-info-item">
                 <div class="camp-info-label">Date</div>
@@ -162,7 +215,7 @@ function displayCampInfo(camp) {
             </div>
             <div class="camp-info-item">
                 <div class="camp-info-label">Sponsor</div>
-                <div class="camp-info-value">${camp.sponsorName || 'N/A'}</div>
+                <div class="camp-info-value">${camp.sponsorName || 'No sponsor assigned'}</div>
             </div>
             <div class="camp-info-item">
                 <div class="camp-info-label">Status</div>
@@ -224,26 +277,57 @@ async function loadCurrentCamp() {
     }
     
     if (currentCamp) {
+        // Load fresh sponsor data if sponsorId exists
+        if (currentCamp.sponsorId && !currentCamp.sponsorName) {
+            try {
+                const sponsorDoc = await db.collection('sponsors').doc(currentCamp.sponsorId).get();
+                if (sponsorDoc.exists) {
+                    const sponsorData = sponsorDoc.data();
+                    currentCamp.sponsorName = sponsorData.name;
+                    currentCamp.sponsor = sponsorData;
+                    // Update localStorage with sponsor info
+                    localStorage.setItem('selectedCamp', JSON.stringify(currentCamp));
+                }
+            } catch (error) {
+                console.error('Error loading sponsor data:', error);
+            }
+        }
+        
         displayCurrentCampInfo();
     }
 }
 
-// Display current camp information
+// Enhanced current camp information display
 function displayCurrentCampInfo() {
     const campCard = document.getElementById('campCard');
+    
+    // Get sponsor name with proper fallback
+    const sponsorName = currentCamp.sponsorName || 
+                       (currentCamp.sponsor && currentCamp.sponsor.name) || 
+                       'Not specified';
+    
     campCard.innerHTML = `
-        <h3>📍 ${currentCamp.name}</h3>
-        <div class="camp-detail">
-            <label>Location:</label>
-            <span>${currentCamp.location}</span>
+        <div class="camp-header">
+            <h3>🏥 ${currentCamp.name}</h3>
+            <div class="camp-status active">Active</div>
         </div>
-        <div class="camp-detail">
-            <label>Date:</label>
-            <span>${formatDate(currentCamp.date)}</span>
-        </div>
-        <div class="camp-detail">
-            <label>Sponsor:</label>
-            <span>${currentCamp.sponsorName || 'N/A'}</span>
+        <div class="camp-details">
+            <div class="camp-detail">
+                <span class="detail-label">📍 Location:</span>
+                <span class="detail-value">${currentCamp.location || 'Location not specified'}</span>
+            </div>
+            <div class="camp-detail">
+                <span class="detail-label">📅 Date:</span>
+                <span class="detail-value">${formatDate(currentCamp.date)}</span>
+            </div>
+            <div class="camp-detail">
+                <span class="detail-label">🏢 Sponsor:</span>
+                <span class="detail-value">${sponsorName}</span>
+            </div>
+            <div class="camp-detail">
+                <span class="detail-label">📊 Status:</span>
+                <span class="detail-value camp-status-badge">${currentCamp.status || 'Active'}</span>
+            </div>
         </div>
     `;
 }
@@ -253,7 +337,6 @@ function showCampSelectionModal() {
     document.getElementById('campSelectionModal').style.display = 'block';
 }
 
-// Load patients ready for consultation
 // Load patients ready for consultation
 async function loadReadyPatients() {
     if (!currentCamp) return;
@@ -306,7 +389,8 @@ async function loadReadyPatients() {
         showAlert('Failed to load patients', 'error');
     }
 }
-// Display ready patients
+
+// Display ready patients with proper null checks
 function displayReadyPatients(patients) {
     const readyPatientsList = document.getElementById('readyPatientsList');
     
@@ -326,14 +410,23 @@ function displayReadyPatients(patients) {
     patients.forEach(patient => {
         const patientItem = document.createElement('div');
         patientItem.className = 'patient-item';
+        
+        // Safe data extraction with fallbacks
+        const patientData = patient.patientData || {};
+        const name = patientData.name || 'Name not available';
+        const regNo = patientData.registrationNo || patientData.registrationNumber || 'Registration pending';
+        const age = patientData.age || 'Age not specified';
+        const gender = patientData.sex || patientData.gender || 'Not specified';
+        const phone = patientData.phone || 'Phone not available';
+        
         patientItem.innerHTML = `
             <div class="patient-item-header">
-                <div class="patient-name">${patient.patientData.name}</div>
-                <div class="patient-reg-no">${patient.patientData.registrationNumber}</div>
+                <div class="patient-name">${name}</div>
+                <div class="patient-reg-no">${regNo}</div>
             </div>
             <div class="patient-details">
-                <span>${patient.patientData.age} years, ${patient.patientData.sex}</span>
-                <span>Phone: ${patient.patientData.phone}</span>
+                <span>${age} years, ${gender}</span>
+                <span>Phone: ${phone}</span>
             </div>
         `;
         
@@ -342,8 +435,7 @@ function displayReadyPatients(patients) {
     });
 }
 
-// Search patients
-// Search patients
+// Enhanced search patients function
 async function searchPatients() {
     const searchQuery = document.getElementById('searchInput').value.trim();
     if (!searchQuery || !currentCamp) return;
@@ -377,7 +469,7 @@ async function searchPatients() {
                     // Add null checks for all fields before searching
                     const patientName = patient.name || '';
                     const patientPhone = patient.phone || '';
-                    const patientRegNo = patient.registrationNumber || '';
+                    const patientRegNo = patient.registrationNo || patient.registrationNumber || '';
                     
                     // Check if any field matches the search query
                     if (patientName.toLowerCase().includes(searchLower) ||
@@ -410,8 +502,8 @@ async function searchPatients() {
         showAlert('Failed to search patients', 'error');
     }
 }
-// Display search results
-// Display search results
+
+// Enhanced search results display
 function displaySearchResults(patients) {
     const searchResultsList = document.getElementById('searchResultsList');
     
@@ -431,14 +523,22 @@ function displaySearchResults(patients) {
     patients.forEach(patient => {
         const patientItem = document.createElement('div');
         patientItem.className = 'patient-item';
+        
+        // Safe data extraction
+        const name = patient.name || 'Name not available';
+        const regNo = patient.registrationNo || patient.registrationNumber || 'Registration pending';
+        const age = patient.age || 'Age not specified';
+        const gender = patient.sex || patient.gender || 'Not specified';
+        const phone = patient.phone || 'Phone not available';
+        
         patientItem.innerHTML = `
             <div class="patient-item-header">
-                <div class="patient-name">${patient.name}</div>
-                <div class="patient-reg-no">${patient.registrationNumber}</div>
+                <div class="patient-name">${name}</div>
+                <div class="patient-reg-no">${regNo}</div>
             </div>
             <div class="patient-details">
-                <span>${patient.age} years, ${patient.sex}</span>
-                <span>Phone: ${patient.phone}</span>
+                <span>${age} years, ${gender}</span>
+                <span>Phone: ${phone}</span>
             </div>
         `;
         
@@ -450,9 +550,10 @@ function displaySearchResults(patients) {
                 ...patient.visitData,
                 patientData: {
                     name: patient.name,
-                    registrationNumber: patient.registrationNumber,
+                    registrationNo: patient.registrationNo || patient.registrationNumber,
+                    registrationNumber: patient.registrationNo || patient.registrationNumber,
                     age: patient.age,
-                    sex: patient.sex,
+                    sex: patient.sex || patient.gender,
                     phone: patient.phone,
                     category: patient.category,
                     address: patient.address,
@@ -465,6 +566,7 @@ function displaySearchResults(patients) {
         searchResultsList.appendChild(patientItem);
     });
 }
+
 // Select patient by ID
 async function selectPatientById(patientId) {
     try {
@@ -527,7 +629,9 @@ async function selectPatient(patient) {
         item.classList.remove('selected');
     });
     
-    event.target.closest('.patient-item').classList.add('selected');
+    if (event && event.target) {
+        event.target.closest('.patient-item').classList.add('selected');
+    }
     
     // Display patient information
     displayPatientInfo(patient);
@@ -542,38 +646,47 @@ async function selectPatient(patient) {
     updatePatientStatus('Selected for consultation');
 }
 
-// Display patient information (UPDATED VERSION)
+// Enhanced patient information display with proper null checks
 async function displayPatientInfo(patient) {
     const patientInfo = document.getElementById('patientInfo');
-    const patientData = patient.patientData;
+    const patientData = patient.patientData || {};
+    
+    // Safe data extraction with proper fallbacks
+    const name = patientData.name || 'Name not provided';
+    const regNo = patientData.registrationNo || patientData.registrationNumber || 'Registration pending';
+    const age = patientData.age ? `${patientData.age} years` : 'Age not specified';
+    const gender = patientData.sex || patientData.gender || 'Not specified';
+    const phone = patientData.phone || 'Phone not provided';
+    const address = patientData.address || 'Address not provided';
+    const category = patientData.category || 'General';
     
     patientInfo.innerHTML = `
         <div class="patient-basic-info">
-            <h3>${patientData.name}</h3>
+            <h3>${name}</h3>
             <div class="patient-info-grid">
                 <div class="info-item">
                     <div class="info-label">Registration Number</div>
-                    <div class="info-value">${patientData.registrationNumber}</div>
+                    <div class="info-value">${regNo}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Age</div>
-                    <div class="info-value">${patientData.age} years</div>
+                    <div class="info-value">${age}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Gender</div>
-                    <div class="info-value">${patientData.sex}</div>
+                    <div class="info-value">${gender}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Phone</div>
-                    <div class="info-value">${patientData.phone}</div>
+                    <div class="info-value">${phone}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Category</div>
-                    <div class="info-value">${patientData.category}</div>
+                    <div class="info-value">${category}</div>
                 </div>
                 <div class="info-item">
                     <div class="info-label">Address</div>
-                    <div class="info-value">${patientData.address}</div>
+                    <div class="info-value">${address}</div>
                 </div>
             </div>
         </div>
@@ -606,7 +719,7 @@ async function displayPatientInfo(patient) {
     document.getElementById('noPatientState').style.display = 'none';
 }
 
-// Load and display vitals data from database (NEW FUNCTION)
+// Enhanced vitals loading with proper date formatting
 async function loadAndDisplayVitals(patient, patientInfoElement) {
     try {
         let vitalsData = null;
@@ -621,7 +734,7 @@ async function loadAndDisplayVitals(patient, patientInfoElement) {
                 // Vitals are stored directly under 'vitals' field
                 if (visitData.vitals) {
                     vitalsData = visitData.vitals;
-                    vitalsCompletedAt = visitData.vitals.recordedAt;
+                    vitalsCompletedAt = visitData.vitals.recordedAt || visitData.journeyStatus?.vitals?.completedAt;
                 }
             }
         }
@@ -630,11 +743,17 @@ async function loadAndDisplayVitals(patient, patientInfoElement) {
         const vitalsSection = patientInfoElement.querySelector('.patient-vitals');
         
         if (vitalsData) {
+            // Format the recorded time properly
+            const recordedTime = vitalsCompletedAt ? formatDateTime(vitalsCompletedAt) : 'Time not recorded';
+            const recordedBy = vitalsData.recordedBy || 'vitals-user';
+            
             vitalsSection.innerHTML = `
                 <div class="vitals-header">
                     <h4>📊 Current Vitals</h4>
-                    ${vitalsCompletedAt ? `<span class="vitals-time">Recorded: ${formatDateTime(vitalsCompletedAt)}</span>` : ''}
-                    ${vitalsData.recordedBy ? `<span class="vitals-recorded-by">By: ${vitalsData.recordedBy}</span>` : ''}
+                    <div class="vitals-meta">
+                        <span class="vitals-time">Recorded: ${recordedTime}</span>
+                        <span class="vitals-recorded-by">By: ${recordedBy}</span>
+                    </div>
                 </div>
                 <div class="vitals-grid">
                     <div class="vital-item ${getVitalStatus(vitalsData.bp, 'bp')}">
@@ -709,7 +828,8 @@ async function loadAndDisplayVitals(patient, patientInfoElement) {
         `;
     }
 }
-// Helper function to get vital status class for color coding (NEW FUNCTION)
+
+// Helper function to get vital status class for color coding
 function getVitalStatus(value, type) {
     if (!value) return '';
     
@@ -753,69 +873,37 @@ function getVitalStatus(value, type) {
     }
 }
 
-// Helper function to format date and time (NEW FUNCTION)
-function formatDateTime(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
-// Helper function to get vital status class for color coding
-function getVitalStatus(value, type) {
-    if (!value) return '';
-    
-    const numValue = parseFloat(value);
-    if (isNaN(numValue)) return '';
-    
-    switch (type) {
-        case 'bp':
-            const [systolic, diastolic] = value.split('/').map(v => parseInt(v));
-            if (systolic > 140 || diastolic > 90) return 'vital-high';
-            if (systolic < 90 || diastolic < 60) return 'vital-low';
-            return 'vital-normal';
+// Enhanced date and time formatting
+function formatDateTime(dateInput) {
+    try {
+        let date;
+        if (dateInput && dateInput.toDate) {
+            date = dateInput.toDate();
+        } else if (dateInput && typeof dateInput === 'string') {
+            date = new Date(dateInput);
+        } else if (dateInput instanceof Date) {
+            date = dateInput;
+        } else {
+            return 'Time not available';
+        }
         
-        case 'hr':
-            if (numValue > 100) return 'vital-high';
-            if (numValue < 60) return 'vital-low';
-            return 'vital-normal';
+        if (isNaN(date.getTime())) {
+            return 'Invalid time';
+        }
         
-        case 'temp':
-            if (numValue > 99.5) return 'vital-high';
-            if (numValue < 97.0) return 'vital-low';
-            return 'vital-normal';
-        
-        case 'bmi':
-            if (numValue > 30) return 'vital-high';
-            if (numValue < 18.5) return 'vital-low';
-            return 'vital-normal';
-        
-        case 'spo2':
-            if (numValue < 95) return 'vital-low';
-            return 'vital-normal';
-        
-        default:
-            return '';
+        return date.toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (error) {
+        console.error('DateTime formatting error:', error);
+        return 'Time unavailable';
     }
 }
 
-// Helper function to format date and time
-function formatDateTime(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
-// Load patient history
 // Load patient history
 async function loadPatientHistory(patientId) {
     try {
@@ -1189,16 +1277,7 @@ async function updateConsultationStatistics() {
     }
 }
 
-// Utility functions
-function formatDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-    });
-}
-
+// Enhanced alert system
 function showAlert(message, type = 'info') {
     const alertContainer = document.getElementById('alertContainer');
     const alert = document.createElement('div');

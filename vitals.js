@@ -153,6 +153,17 @@ async function selectPatientFromList(patientId, regNumber) {
 
 // Setup event listeners
 function setupEventListeners() {
+    // Update your existing DOMContentLoaded function
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Firebase (your existing code)
+    // ... existing Firebase initialization code ...
+    
+    // Initialize camp selection
+    initializeCampSelection();
+    
+    // Your existing event listeners
+    // ... existing code ...
+});
     // Patient lookup
     document.getElementById('lookupBtn').addEventListener('click', lookupPatient);
     document.getElementById('clearLookupBtn').addEventListener('click', clearLookup);

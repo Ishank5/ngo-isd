@@ -49,13 +49,46 @@ body {
 }
 
 /* Camp Selection Modal */
-.camp-selection-modal .modal-content {
-    max-width: 600px;
-    width: 90%;
+/* Camp Selection Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
 }
 
-.camp-selection-section {
-    margin-bottom: 1.5rem;
+.modal-content {
+    background-color: var(--white);
+    margin: 5% auto;
+    padding: 0;
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--gray-200);
+    background: var(--vitals-purple-light);
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: var(--vitals-purple);
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.modal-body {
+    padding: 1.5rem;
 }
 
 .camp-selection-section h4 {
@@ -110,7 +143,7 @@ body {
     display: flex;
     gap: 1rem;
     justify-content: flex-end;
-    padding-top: 1rem;
+    padding: 1rem 1.5rem;
     border-top: 1px solid var(--gray-200);
 }
 
@@ -118,46 +151,70 @@ body {
     display: none;
 }
 
-/* Modal backdrop */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(2px);
+/* Camp Card Styling for Sidebar */
+.camp-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
 }
 
-.modal-content {
-    background-color: var(--white);
-    margin: 5% auto;
-    padding: 0;
-    border-radius: 12px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-    max-width: 500px;
-    width: 90%;
-    max-height: 90vh;
-    overflow-y: auto;
-}
-
-.modal-header {
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--gray-200);
-    background: var(--vitals-purple-light);
-}
-
-.modal-header h3 {
+.camp-header h3 {
     margin: 0;
+    font-size: 1rem;
     color: var(--vitals-purple);
-    font-size: 1.25rem;
+}
+
+.camp-status {
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.camp-status.active {
+    background: #d4edda;
+    color: #155724;
+}
+
+.camp-details {
+    margin-bottom: 1rem;
+}
+
+.camp-detail {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+}
+
+.detail-label {
+    color: var(--gray-600);
+    font-weight: 500;
+}
+
+.detail-value {
+    color: var(--gray-900);
     font-weight: 600;
 }
 
-.modal-body {
-    padding: 1.5rem;
+.change-camp-btn {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--vitals-purple);
+    background: white;
+    color: var(--vitals-purple);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.change-camp-btn:hover {
+    background: var(--vitals-purple);
+    color: white;
 }
 
 /* Sidebar */

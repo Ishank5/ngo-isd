@@ -284,6 +284,42 @@ function setupCampSelectionListeners() {
     }
 }
 
+// Show camp selection modal (matching registration and doctor pages)
+function showCampSelectionModal() {
+    document.getElementById('campSelectionModal').style.display = 'block';
+    loadAvailableCamps();
+}
+
+// Refresh all data function
+async function refreshAllData() {
+    try {
+        const refreshBtn = document.getElementById('refreshDataBtn');
+        const originalText = refreshBtn.textContent;
+        refreshBtn.textContent = 'Loading...';
+        refreshBtn.disabled = true;
+        
+        // Refresh vitals statistics
+        await updateVitalsStatistics();
+        
+        // Refresh recent patients
+        await loadRecentPatients();
+        
+        showAlert('Data refreshed successfully', 'success');
+        
+        // Reset button
+        refreshBtn.textContent = originalText;
+        refreshBtn.disabled = false;
+        
+    } catch (error) {
+        console.error('Error refreshing data:', error);
+        showAlert('Failed to refresh data', 'error');
+        
+        // Reset button even on error
+        const refreshBtn = document.getElementById('refreshDataBtn');
+        refreshBtn.textContent = 'Refresh';
+        refreshBtn.disabled = false;
+    }
+}
 // NEW: Format date helper
 function formatDate(dateInput) {
     try {

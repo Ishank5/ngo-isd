@@ -13,42 +13,307 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// Global variables
+// Global variables for camp management
+let availableCamps = [];
 let currentCamp = null;
 let currentPatient = null;
 let currentVisit = null;
 let vitalsStats = { today: 0, pending: 0 };
+let currentSponsor = null; // Keep this for compatibility
 
-// Initialize the application
+// Main initialization when page loads
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM Content Loaded - Starting initialization');
     initializeApp();
     setupEventListeners();
+    setupCampSelectionListeners(); // NEW: Add camp selection listeners
 });
 
-// Initialize application
+// Initialize application (UPDATED)
 async function initializeApp() {
     console.log('=== initializeApp started ===');
     try {
-        await loadCurrentCamp();
-        await updateVitalsStatistics();
-        console.log('About to call loadRecentPatients...');
-        await loadRecentPatients();
-        console.log('loadRecentPatients completed');
-    } catch (error) {
-        console.error('Initialization error:', error);
-        showAlert('Failed to initialize application', 'error');
-    }
-    try {
-        await loadCurrentCamp();
-        await updateVitalsStatistics();
+        // First check if we have a camp selected
+        await initializeCampSelection();
+        
+        // Only load other data if we have a camp
+        if (currentCamp) {
+            await updateVitalsStatistics();
+            await loadRecentPatients();
+        }
     } catch (error) {
         console.error('Initialization error:', error);
         showAlert('Failed to initialize application', 'error');
     }
 }
 
-// Load recent registered patients (with detailed debugging)
-// Load recent registered patients
+// NEW: Initialize camp selection
+async function initializeCampSelection() {
+    console.log('Initializing camp selection...');
+    try {
+        // Check if camp is already selected
+        const savedCamp = localStorage.getItem('selectedCamp');
+        if (savedCamp) {
+            console.log('Found saved camp:', savedCamp);
+            currentCamp = JSON.parse(savedCamp);
+            await loadCurrentCamp();
+        } else {
+            console.log('No saved camp found, showing modal');
+            // Show camp selection modal
+            document.getElementById('campSelectionModal').style.display = 'block';
+            await loadAvailableCamps();
+        }
+    } catch (error) {
+        console.error('Error initializing camp selection:', error);
+        showAlert('Failed to initialize camp selection', 'error');
+    }
+}
+
+// NEW: Load available camps
+async function loadAvailableCamps() {
+    console.log('Loading available camps...');
+    try {
+        const snapshot = await db.collection('camps').get();
+        availableCamps = [];
+        
+        snapshot.forEach(doc => {
+            availableCamps.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+
+        console.log('Available camps loaded:', availableCamps);
+        updateCampDropdown();
+    } catch (error) {
+        console.error('Error loading camps:', error);
+        showAlert('Failed to load camps', 'error');
+    }
+}
+
+// NEW: Update camp dropdown
+function updateCampDropdown() {
+    const select = document.getElementById('availableCamps');
+    if (!select) {
+        console.error('availableCamps select element not found');
+        return;
+    }
+    
+    select.innerHTML = '<option value="">Select a camp</option>';
+    
+    availableCamps.forEach(camp => {
+        const option = document.createElement('option');
+        option.value = camp.id;
+        option.textContent = `${camp.name} - ${camp.location}`;
+        select.appendChild(option);
+    });
+}
+
+// NEW: Handle camp selection
+function handleCampSelection() {
+    const selectedCampId = document.getElementById('availableCamps').value;
+    const selectedCamp = availableCamps.find(camp => camp.id === selectedCampId);
+    
+    if (selectedCamp) {
+        displayCampInfo(selectedCamp);
+        document.getElementById('selectCampBtn').disabled = false;
+    } else {
+        document.getElementById('selectedCampInfo').style.display = 'none';
+        document.getElementById('selectCampBtn').disabled = true;
+    }
+}
+
+// NEW: Display camp information in modal
+function displayCampInfo(camp) {
+    const campInfo = document.getElementById('selectedCampInfo');
+    campInfo.innerHTML = `
+        <h5>${camp.name}</h5>
+        <div class="camp-info-grid">
+            <div class="camp-info-item">
+                <div class="camp-info-label">Location</div>
+                <div class="camp-info-value">${camp.location}</div>
+            </div>
+            <div class="camp-info-item">
+                <div class="camp-info-label">Date</div>
+                <div class="camp-info-value">${formatDate(camp.date)}</div>
+            </div>
+            <div class="camp-info-item">
+                <div class="camp-info-label">Sponsor</div>
+                <div class="camp-info-value">${camp.sponsorName || 'N/A'}</div>
+            </div>
+            <div class="camp-info-item">
+                <div class="camp-info-label">Status</div>
+                <div class="camp-info-value">${camp.status || 'Active'}</div>
+            </div>
+        </div>
+    `;
+    campInfo.style.display = 'block';
+}
+
+// NEW: Handle camp confirmation
+async function handleCampConfirmation() {
+    const selectedCampId = document.getElementById('availableCamps').value;
+    const selectedCamp = availableCamps.find(camp => camp.id === selectedCampId);
+    
+    if (selectedCamp) {
+        try {
+            // Show loading
+            const btnText = document.querySelector('#selectCampBtn .btn-text');
+            const btnLoading = document.querySelector('#selectCampBtn .btn-loading');
+            if (btnText) btnText.style.display = 'none';
+            if (btnLoading) btnLoading.style.display = 'inline';
+            
+            // Save camp selection to localStorage
+            localStorage.setItem('selectedCamp', JSON.stringify(selectedCamp));
+            
+            // Update current camp
+            currentCamp = selectedCamp;
+            
+            // Load camp details
+            await loadCurrentCamp();
+            
+            // Hide modal
+            document.getElementById('campSelectionModal').style.display = 'none';
+            
+            // Load recent patients and stats
+            await loadRecentPatients();
+            await updateVitalsStatistics();
+            
+            showAlert('Camp selected successfully', 'success');
+        } catch (error) {
+            console.error('Error selecting camp:', error);
+            showAlert('Failed to select camp', 'error');
+        }
+    }
+}
+
+// UPDATED: Load current camp details
+async function loadCurrentCamp() {
+    console.log('Loading current camp:', currentCamp);
+    if (!currentCamp) {
+        console.log('No current camp selected');
+        // Show loading state
+        const campCard = document.getElementById('campCard');
+        if (campCard) {
+            campCard.innerHTML = '<div class="loading">No camp selected</div>';
+        }
+        return;
+    }
+    
+    try {
+        // Update camp display in sidebar
+        updateCampDisplay();
+    } catch (error) {
+        console.error('Error loading current camp:', error);
+    }
+}
+
+// NEW: Update camp display in sidebar
+function updateCampDisplay() {
+    console.log('Updating camp display for:', currentCamp);
+    if (!currentCamp) return;
+    
+    // Update the camp card in sidebar
+    const campCard = document.getElementById('campCard');
+    if (campCard) {
+        campCard.innerHTML = `
+            <div class="camp-header">
+                <h3>🏥 ${currentCamp.name}</h3>
+                <div class="camp-status active">Active</div>
+            </div>
+            <div class="camp-details">
+                <div class="camp-detail">
+                    <span class="detail-label">📍 Location:</span>
+                    <span class="detail-value">${currentCamp.location}</span>
+                </div>
+                <div class="camp-detail">
+                    <span class="detail-label">📅 Date:</span>
+                    <span class="detail-value">${formatDate(currentCamp.date)}</span>
+                </div>
+                <div class="camp-detail">
+                    <span class="detail-label">🏢 Sponsor:</span>
+                    <span class="detail-value">${currentCamp.sponsorName || 'N/A'}</span>
+                </div>
+            </div>
+            <button id="changeCampBtn" class="change-camp-btn">
+                <span>🔄 Change Camp</span>
+            </button>
+        `;
+        
+        // Add change camp button listener
+        const changeCampBtn = document.getElementById('changeCampBtn');
+        if (changeCampBtn) {
+            changeCampBtn.addEventListener('click', function() {
+                document.getElementById('campSelectionModal').style.display = 'block';
+                loadAvailableCamps();
+            });
+        }
+    }
+}
+
+// NEW: Setup camp selection event listeners
+function setupCampSelectionListeners() {
+    console.log('Setting up camp selection listeners...');
+    
+    // Camp selection modal event listeners
+    const availableCampsSelect = document.getElementById('availableCamps');
+    const selectCampBtn = document.getElementById('selectCampBtn');
+    const refreshCampsBtn = document.getElementById('refreshCampsBtn');
+    
+    if (availableCampsSelect) {
+        availableCampsSelect.addEventListener('change', handleCampSelection);
+        console.log('Camp selection dropdown listener added');
+    }
+    
+    if (selectCampBtn) {
+        selectCampBtn.addEventListener('click', handleCampConfirmation);
+        console.log('Select camp button listener added');
+    }
+    
+    if (refreshCampsBtn) {
+        refreshCampsBtn.addEventListener('click', loadAvailableCamps);
+        console.log('Refresh camps button listener added');
+    }
+    
+    // Modal backdrop click to close
+    const campModal = document.getElementById('campSelectionModal');
+    if (campModal) {
+        campModal.addEventListener('click', function(event) {
+            if (event.target === campModal) {
+                // Don't allow closing if no camp is selected
+                if (!currentCamp) {
+                    showAlert('Please select a camp to continue', 'warning');
+                    return;
+                }
+                campModal.style.display = 'none';
+            }
+        });
+    }
+}
+
+// NEW: Format date helper
+function formatDate(dateInput) {
+    try {
+        let date;
+        if (dateInput && dateInput.toDate) {
+            date = dateInput.toDate();
+        } else if (dateInput) {
+            date = new Date(dateInput);
+        } else {
+            return 'Not specified';
+        }
+        
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    } catch (error) {
+        return 'Invalid date';
+    }
+}
+
+// Load recent registered patients (KEPT FROM ORIGINAL)
 async function loadRecentPatients() {
     console.log('loadRecentPatients function called!');
     console.log('=== Starting loadRecentPatients ===');
@@ -145,25 +410,15 @@ async function loadRecentPatients() {
         `;
     }
 }
-// Select patient from recent list
+
+// Select patient from recent list (KEPT FROM ORIGINAL)
 async function selectPatientFromList(patientId, regNumber) {
     document.getElementById('regNumberInput').value = regNumber;
     await lookupPatient();
 }
 
-// Setup event listeners
+// Setup event listeners (UPDATED - removed duplicate DOMContentLoaded)
 function setupEventListeners() {
-    // Update your existing DOMContentLoaded function
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Firebase (your existing code)
-    // ... existing Firebase initialization code ...
-    
-    // Initialize camp selection
-    initializeCampSelection();
-    
-    // Your existing event listeners
-    // ... existing code ...
-});
     // Patient lookup
     document.getElementById('lookupBtn').addEventListener('click', lookupPatient);
     document.getElementById('clearLookupBtn').addEventListener('click', clearLookup);
@@ -201,78 +456,6 @@ document.addEventListener('DOMContentLoaded', function() {
     setupVitalSignsValidation();
 }
 
-// Load current active camp
-async function loadCurrentCamp() {
-    try {
-        const campsRef = db.collection('camps');
-        const activeCamps = await campsRef.where('status', '==', 'active').get();
-        
-        if (!activeCamps.empty) {
-            const campDoc = activeCamps.docs[0];
-            currentCamp = { id: campDoc.id, ...campDoc.data() };
-            
-            // Load sponsor information
-            const sponsorDoc = await db.collection('sponsors').doc(currentCamp.sponsorId).get();
-            if (sponsorDoc.exists) {
-                currentSponsor = { id: sponsorDoc.id, ...sponsorDoc.data() };
-            }
-            
-            displayCampInfo();
-        } else {
-            displayNoCampState();
-        }
-    } catch (error) {
-        console.error('Error loading camp:', error);
-        showAlert('Failed to load camp information', 'error');
-    }
-}
-
-// Display camp information
-function displayCampInfo() {
-    if (!currentCamp || !currentSponsor) return;
-    
-    const campDate = currentCamp.date.toDate().toLocaleDateString();
-    
-    document.getElementById('campCard').innerHTML = `
-        <h3>🏥 Current Camp</h3>
-        <div class="camp-detail">
-            <label>Camp Name</label>
-            <span>${currentCamp.name}</span>
-        </div>
-        <div class="camp-detail">
-            <label>Sponsor</label>
-            <span>${currentSponsor.name}</span>
-        </div>
-        <div class="camp-detail">
-            <label>Location</label>
-            <span>${currentCamp.location}</span>
-        </div>
-        <div class="camp-detail">
-            <label>Date</label>
-            <span>${campDate}</span>
-        </div>
-        <div class="camp-detail">
-            <label>Status</label>
-            <span class="camp-status">
-                <span>🟢</span>
-                Active
-            </span>
-        </div>
-    `;
-}
-
-// Display no camp state
-function displayNoCampState() {
-    document.getElementById('campCard').innerHTML = `
-        <div class="no-camp-state">
-            <h3>⚠️ No Active Camp</h3>
-            <p>Please ensure there is an active camp to record vitals</p>
-        </div>
-    `;
-}
-
-// Update vitals statistics
-// Update vitals statistics (simplified - no orderBy)
 async function updateVitalsStatistics() {
     try {
         const today = new Date();

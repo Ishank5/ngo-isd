@@ -161,6 +161,76 @@ body {
     font-weight: 500;
 }
 
+/* Enhanced camp card styling */
+.camp-card {
+    background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+    border: 1px solid var(--gray-200);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md);
+    margin-bottom: 1.5rem;
+}
+
+.camp-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.camp-header h3 {
+    color: var(--doctor-purple);
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.camp-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.camp-status.active {
+    background: var(--light-blue);
+    color: var(--primary-blue);
+}
+
+.camp-detail {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.camp-detail:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-size: 0.85rem;
+    color: var(--gray-600);
+    font-weight: 500;
+}
+
+.detail-value {
+    font-size: 0.85rem;
+    color: var(--gray-800);
+    font-weight: 600;
+}
+
+.camp-status-badge {
+    padding: 0.25rem 0.5rem;
+    background: var(--success-green);
+    color: white;
+    border-radius: 8px;
+    font-size: 0.75rem;
+}
 .camp-detail span {
     color: var(--gray-700);
     font-size: 13px;

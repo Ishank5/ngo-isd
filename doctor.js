@@ -103,21 +103,32 @@ function setupEventListeners() {
 function formatDate(dateInput) {
     try {
         let date;
-        if (dateInput && dateInput.toDate) {
-            // Firestore timestamp
+        
+        // Handle Firestore timestamp
+        if (dateInput && typeof dateInput === 'object' && dateInput.toDate) {
             date = dateInput.toDate();
-        } else if (dateInput && typeof dateInput === 'string') {
-            // String date
+        }
+        // Handle Firestore timestamp with seconds/nanoseconds
+        else if (dateInput && typeof dateInput === 'object' && dateInput.seconds) {
+            date = new Date(dateInput.seconds * 1000);
+        }
+        // Handle string dates
+        else if (dateInput && typeof dateInput === 'string') {
             date = new Date(dateInput);
-        } else if (dateInput instanceof Date) {
-            // Already a Date object
+        }
+        // Handle Date objects
+        else if (dateInput instanceof Date) {
             date = dateInput;
-        } else {
-            return 'Not specified';
+        }
+        // Handle null/undefined
+        else {
+            console.log('Date input is null/undefined:', dateInput);
+            return 'Date not specified';
         }
         
-        // Check if date is valid
+        // Validate the date
         if (isNaN(date.getTime())) {
+            console.log('Invalid date created from:', dateInput);
             return 'Invalid date';
         }
         
@@ -126,12 +137,12 @@ function formatDate(dateInput) {
             month: 'long',
             day: 'numeric'
         });
+        
     } catch (error) {
-        console.error('Date formatting error:', error);
-        return 'Date unavailable';
+        console.error('Date formatting error:', error, 'Input:', dateInput);
+        return 'Date formatting error';
     }
 }
-
 // Enhanced camp data loading with sponsor information
 async function loadAvailableCamps() {
     try {

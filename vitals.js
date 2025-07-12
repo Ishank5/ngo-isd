@@ -213,7 +213,7 @@ function updateCampDisplay() {
     console.log('Updating camp display for:', currentCamp);
     if (!currentCamp) return;
     
-    // Update the camp card in sidebar
+    // Update the camp card in sidebar (without the change camp button)
     const campCard = document.getElementById('campCard');
     if (campCard) {
         campCard.innerHTML = `
@@ -235,26 +235,19 @@ function updateCampDisplay() {
                     <span class="detail-value">${currentCamp.sponsorName || 'N/A'}</span>
                 </div>
             </div>
-            <button id="changeCampBtn" class="change-camp-btn">
-                <span>🔄 Change Camp</span>
-            </button>
         `;
-        
-        // Add change camp button listener
-        const changeCampBtn = document.getElementById('changeCampBtn');
-        if (changeCampBtn) {
-            changeCampBtn.addEventListener('click', function() {
-                document.getElementById('campSelectionModal').style.display = 'block';
-                loadAvailableCamps();
-            });
-        }
     }
 }
 
 // NEW: Setup camp selection event listeners
 function setupCampSelectionListeners() {
     console.log('Setting up camp selection listeners...');
+
+ 
+    document.getElementById('changeCampBtn').addEventListener('click', showCampSelectionModal);
+    document.getElementById('refreshDataBtn').addEventListener('click', refreshAllData);
     
+
     // Camp selection modal event listeners
     const availableCampsSelect = document.getElementById('availableCamps');
     const selectCampBtn = document.getElementById('selectCampBtn');

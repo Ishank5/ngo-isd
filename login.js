@@ -46,7 +46,7 @@ loginForm.addEventListener("submit", async (e) => {
       case "doctor":
         window.location.href = "doctor.html";
         break;
-      case "pharmacist":
+      case "pharmacy":
         window.location.href = "pharmacy.html";
         break;
       default:
